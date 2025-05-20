@@ -91,7 +91,7 @@ function Message({ ipAddress }) {
       <h2>{ connectionStatus }: CPU Utilization (%)</h2>
       <Box sx={{height: '600px', overflow: 'auto', width: '100%', border: 'solid 1px'}}>
         {messages.map((message, index) => (
-            <Metrics key={index} message={message} username={ipAddress} />
+            <Metrics key={index} message={message}/>
         ))}
       </Box>
     </Container>

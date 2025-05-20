@@ -90,8 +90,9 @@ function Message({ ipAddress }) {
     return (Math.random() * 100).toFixed(2);
   };
 
+  messages.slice(messages.length-99, messages.length-1)
   // Prepare chart data (parse numbers and format timestamp)
-  const chartData = messages.map(m => ({
+  const chartData = messages.slice(messages.length-30, messages.length-1).map(m => ({
     cpuUtilInPercent: Number(m.cpuUtilInPercent),
     // Format timestamp as hh:mm:ss for readability
     time: new Date(m.timeStamp).toLocaleTimeString()
@@ -103,7 +104,7 @@ function Message({ ipAddress }) {
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
             <Box sx={{height: '600px', overflow: 'auto', width: '100%', border: 'solid 1px'}}>
-              {[...messages].reverse().map((message, index) => (
+              {[...messages].slice(messages.length-30, messages.length-1).reverse().map((message, index) => (
                   <Metrics key={index} message={message}/>
               ))}
             </Box>

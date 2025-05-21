@@ -1,16 +1,31 @@
-import {useState, useEffect, useRef} from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { PropTypes } from 'prop-types';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
-import {Box, Container, Grid, Paper} from '@mui/material';
-import PropTypes from 'prop-types';
+import { Box, Container, Grid, Paper } from '@mui/material';
 import error from "eslint-plugin-react/lib/util/error.js";
 import Metrics from "./Metrics.jsx";
-// Chart imports
+
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from 'recharts';
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer } from 'recharts';
+
+import {
+  APP_SERVER_URL,
+  MSG_TYPE_CONNECT,
+  MSG_TYPE_DISCONNECT,
+  SOCKET_DEST_ADD_IP,
+  SOCKET_DEST_SEND_METRICS,
+  SOCKET_DEST_PUBLIC,
+  MSG_TYPE_METRICS } from "../Constants.jsx";
 
 function Message({ ipAddress }) {
+
   Message.propTypes = {
     ipAddress: PropTypes.string.isRequired
   };
@@ -20,21 +35,25 @@ function Message({ ipAddress }) {
   const intervalRef = useRef(null);
 
   useEffect(() => {
+
     const newClient = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8000/ws'),
+      webSocketFactory: () => new SockJS(APP_SERVER_URL),
+
       onConnect: () => {
         const connectMessage = {
           ipAddress: ipAddress,
           timeStamp: Date.now(),
-          type: 'CONNECT'
+          type: MSG_TYPE_CONNECT
         };
+
         newClient.heartbeatIncoming=0;
-        newClient.publish({ destination: '/app/message.add-ip', body: JSON.stringify(connectMessage) });
+        newClient.publish({ destination: SOCKET_DEST_ADD_IP, body: JSON.stringify(connectMessage) });
         console.log(connectMessage);
-        newClient.subscribe('/topic/public', message => {
+        newClient.subscribe(SOCKET_DEST_PUBLIC, message => {
           const newMessage = JSON.parse(message.body);
-          console.log("Connect Message: " + JSON.stringify(newMessage));
+          console.log(newMessage);
         });
+
         setConnectionStatus('Connected');
 
         intervalRef.current = setInterval(() => {
@@ -43,34 +62,37 @@ function Message({ ipAddress }) {
             ipAddress: ipAddress,
             timeStamp: Date.now(),
             cpuUtilInPercent: cpuUsage,
-            type: 'METRICS'
+            type: MSG_TYPE_METRICS
           };
 
-          setMessages(prevMessages => [...prevMessages, metricsMessage]); // Add the received message to the state
-          newClient.publish({ destination: '/app/message.send-metrics', body: JSON.stringify(metricsMessage) });
+          setMessages(prevMessages => [...prevMessages, metricsMessage]);
+          newClient.publish({ destination: SOCKET_DEST_SEND_METRICS, body: JSON.stringify(metricsMessage) });
         }, 2000);
       },
+
       onDisconnect: () => {
-        if (newClient.connected) { // Check if the client is connected
+        if (newClient.connected) {
           const leaveMessage = {
             ipAddress: ipAddress,
             timeStamp: Date.now(),
-            type: 'DISCONNECT'
+            type: MSG_TYPE_DISCONNECT
           };
-          newClient.publish({ destination: '/app/message.add-ip', body: JSON.stringify(leaveMessage) });
-          console.log(leaveMessage); // Log the leave message
+          newClient.publish({ destination: SOCKET_DEST_ADD_IP, body: JSON.stringify(leaveMessage) });
         }
         setConnectionStatus('Disconnected');
         if (intervalRef.current) clearInterval(intervalRef.current);
       },
+
       onWebSocketClose: () => {
         setConnectionStatus('Disconnected');
         if (intervalRef.current) clearInterval(intervalRef.current);
       },
+
       onWebSocketError: () => {
         console.error('WebSocket error: ', error);
         setConnectionStatus('Failed to connect');
       },
+
       onStompError: (frame) => {
         console.log('Broker reported error: ' + frame.headers['message']);
         console.log('Additional details: ' + frame.body);
@@ -78,23 +100,18 @@ function Message({ ipAddress }) {
     });
 
     newClient.activate();
-
-    // Disconnect when the component unmounts
     return () => {
       newClient.deactivate();
     };
   }, []);
 
   const getCpuUsage = () => {
-    // This should be replaced with real CPU usage if available
     return (Math.random() * 100).toFixed(2);
   };
 
   messages.slice(messages.length-99, messages.length-1)
-  // Prepare chart data (parse numbers and format timestamp)
   const chartData = messages.slice(messages.length-30, messages.length-1).map(m => ({
     cpuUtilInPercent: Number(m.cpuUtilInPercent),
-    // Format timestamp as hh:mm:ss for readability
     time: new Date(m.timeStamp).toLocaleTimeString()
   }));
 

@@ -1,12 +1,12 @@
 import {useEffect, useState} from 'react';
-import IpAddressPage from './component/IpAddressPage.jsx';
 import Message from "./component/Message.jsx";
+import { IP_URL } from "./Constants.jsx";
 
 function App() {
   const [ipAddress, setIpAddress] = useState(null);
 
     useEffect(() => {
-        fetch("https://api.ipify.org?format=json", { method: "GET" })
+        fetch(IP_URL, { method: "GET" })
             .then(response => {
                 if (response.ok) {
                     return response.json();
@@ -22,7 +22,7 @@ function App() {
 
     return (
         <div>
-            {ipAddress ? <Message ipAddress={ipAddress} /> : <IpAddressPage setIpAddress={setIpAddress} />}
+            <Message ipAddress={ipAddress} />
         </div>
     );
 }
